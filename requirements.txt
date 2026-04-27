@@ -1,0 +1,8 @@
+# Config
+python-dotenv
+
+# Ingestion
+pypdf
+pymupdf
+pytesseract
+pillow

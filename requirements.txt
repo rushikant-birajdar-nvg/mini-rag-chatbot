@@ -1,6 +1,11 @@
-# Config
+# Core API and config
+fastapi
+uvicorn[standard]
 pydantic-settings
 python-dotenv
+
+# Auth
+pyjwt
 
 # Ingestion
 pypdf

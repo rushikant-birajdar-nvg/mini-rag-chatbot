@@ -1,3 +1,5 @@
+"""Qdrant data access layer for ingestion upserts and RBAC retrieval."""
+
 from uuid import uuid4
 
 from qdrant_client import QdrantClient
@@ -9,12 +11,15 @@ from app.sparse_embeddings import make_sparse_vector
 
 
 class VectorStore:
+    """Wrap Qdrant operations used by the chat application."""
+
     def __init__(self) -> None:
         settings = get_settings()
         self.collection = settings.qdrant_collection
         self.client = QdrantClient(url=settings.qdrant_url)
 
     def ensure_collection(self, vector_size: int) -> None:
+        """Create the collection if missing, with dense or hybrid schema."""
         settings = get_settings()
         collections = self.client.get_collections().collections
         if any(c.name == self.collection for c in collections):
@@ -40,6 +45,7 @@ class VectorStore:
         metadatas: list[dict],
         sparse_vectors: list[dict[str, list[int] | list[float]]] | None = None,
     ) -> None:
+        """Upsert chunk payloads with dense vectors and optional sparse vectors."""
         if not vectors:
             return
         settings = get_settings()
@@ -70,6 +76,7 @@ class VectorStore:
     def search(
         self, query_vector: list[float], query_text: str, department: str, level: int, limit: int
     ) -> list[RetrievedChunk]:
+        """Run RBAC-filtered retrieval and return thresholded chunk results."""
         # RBAC at query layer:
         # (department == user.department OR department == hr) AND access_level <= user.level
         rbac_filter = models.Filter(
@@ -102,6 +109,7 @@ class VectorStore:
     def _hybrid_search_or_fallback(
         self, query_vector: list[float], query_text: str, query_filter: models.Filter, limit: int
     ):
+        """Try native hybrid search first and fall back to dense when needed."""
         settings = get_settings()
         if settings.retrieval_mode != "hybrid":
             return self._dense_search(query_vector, query_filter, limit)
@@ -144,6 +152,7 @@ class VectorStore:
             return self._dense_search(query_vector, query_filter, limit)
 
     def _dense_search(self, query_vector: list[float], query_filter: models.Filter, limit: int):
+        """Run standard dense vector search across supported Qdrant client APIs."""
         if hasattr(self.client, "search"):
             return self.client.search(
                 collection_name=self.collection,

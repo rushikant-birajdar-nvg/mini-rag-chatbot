@@ -1,3 +1,5 @@
+"""FastAPI entrypoints for health, ingestion, and websocket chat."""
+
 import asyncio
 import json
 import logging
@@ -21,11 +23,13 @@ STREAM_EMIT_DELAY_SECONDS = 0.015
 
 @app.get("/health")
 async def health() -> dict[str, str]:
+    """Return a lightweight health response for uptime checks."""
     return {"status": "ok"}
 
 
 @app.post("/ingest")
 async def ingest() -> JSONResponse:
+    """Run document ingestion in a worker thread and return ingestion stats."""
     try:
         result = await asyncio.to_thread(ingest_documents, Path("docs"))
         return JSONResponse(result)
@@ -39,6 +43,7 @@ async def ingest() -> JSONResponse:
 
 @app.websocket("/ws/chat")
 async def ws_chat(websocket: WebSocket) -> None:
+    """Handle auth-first websocket chat and stream model responses."""
     await websocket.accept()
 
     try:

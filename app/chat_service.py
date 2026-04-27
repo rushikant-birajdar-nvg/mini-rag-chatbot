@@ -1,3 +1,5 @@
+"""Chat orchestration for retrieval, prompt building, and LLM streaming."""
+
 import asyncio
 import logging
 from collections.abc import AsyncIterator
@@ -15,12 +17,15 @@ logger = logging.getLogger(__name__)
 
 
 class ChatService:
+    """Coordinates RAG retrieval and response streaming for chat requests."""
+
     def __init__(self) -> None:
         self.settings = get_settings()
         self.vector_store = VectorStore()
         self.llm = get_llm_client()
 
     async def stream_response(self, user: AuthenticatedUser, text: str) -> AsyncIterator[str]:
+        """Stream a policy-grounded answer for one user question."""
         query_vector = (await asyncio.to_thread(embed_texts, [text]))[0]
         chunks = await asyncio.to_thread(
             self.vector_store.search,
@@ -96,6 +101,7 @@ class ChatService:
                 yield token
 
     async def _execute_tool(self, tool_name: str, args: dict) -> dict:
+        """Execute supported tools requested by the LLM."""
         if tool_name != "get_employee_context":
             return {"error": f"Unsupported tool: {tool_name}"}
         user_id = str(args.get("user_id", "")).strip()

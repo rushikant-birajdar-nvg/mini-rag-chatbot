@@ -1,3 +1,5 @@
+"""Provider-agnostic LLM clients with streaming and optional tool-calling."""
+
 import json
 from collections.abc import AsyncIterator
 from typing import Any, Awaitable, Callable
@@ -13,6 +15,7 @@ from app.config import get_settings
 ToolExecutor = Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]]
 
 def _employee_tool_openai_schema() -> list[dict[str, Any]]:
+    """Return OpenAI-compatible schema for the employee context tool."""
     return [
         {
             "type": "function",
@@ -33,6 +36,7 @@ def _employee_tool_openai_schema() -> list[dict[str, Any]]:
 
 
 def _employee_tool_gemini_schema() -> list[dict[str, Any]]:
+    """Return Gemini tool declaration for the employee context tool."""
     return [
         {
             "function_declarations": [
@@ -53,6 +57,8 @@ def _employee_tool_gemini_schema() -> list[dict[str, Any]]:
 
 
 class LLMClient:
+    """Base interface for streaming chat responses from an LLM provider."""
+
     async def stream_answer(
         self,
         prompt: str,
@@ -63,6 +69,8 @@ class LLMClient:
 
 
 class OllamaLLM(LLMClient):
+    """Ollama-backed streaming client with optional tool-call support."""
+
     def __init__(self) -> None:
         settings = get_settings()
         self.client = ollama.AsyncClient(host=settings.ollama_base_url)
@@ -74,6 +82,7 @@ class OllamaLLM(LLMClient):
         user_id: str,
         tool_executor: ToolExecutor | None = None,
     ) -> AsyncIterator[str]:
+        """Stream an answer from Ollama, resolving tool calls when requested."""
         if tool_executor is None:
             stream = await self.client.chat(
                 model=self.model,
@@ -137,6 +146,8 @@ class OllamaLLM(LLMClient):
 
 # OpenAI | Groq compatible LLM
 class OpenAICompatibleLLM(LLMClient):
+    """OpenAI-compatible client used for OpenAI and Groq APIs."""
+
     def __init__(self, *, api_key: str, model: str, base_url: str | None = None) -> None:
         self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         self.model = model
@@ -148,6 +159,7 @@ class OpenAICompatibleLLM(LLMClient):
         user_id: str,
         tool_executor: ToolExecutor | None = None,
     ) -> AsyncIterator[str]:
+        """Stream an answer and execute tool calls through compatible APIs."""
         if tool_executor is None:
             stream = await self.client.chat.completions.create(
                 model=self.model,
@@ -233,6 +245,8 @@ class OpenAICompatibleLLM(LLMClient):
 
 
 class GeminiLLM(LLMClient):
+    """Gemini client using HTTP endpoints for tool use and SSE streaming."""
+
     def __init__(self, *, api_key: str, model: str, base_url: str) -> None:
         self.api_key = api_key
         self.model = model
@@ -245,6 +259,7 @@ class GeminiLLM(LLMClient):
         user_id: str,
         tool_executor: ToolExecutor | None = None,
     ) -> AsyncIterator[str]:
+        """Stream Gemini output and insert tool responses into follow-up calls."""
         stream_url = (
             f"{self.base_url}/models/{self.model}:streamGenerateContent"
             f"?alt=sse&key={self.api_key}"
@@ -314,6 +329,8 @@ class GeminiLLM(LLMClient):
 
 
 class AnthropicLLM(LLMClient):
+    """Anthropic streaming client with support for tool execution."""
+
     def __init__(self, *, api_key: str, model: str) -> None:
         self.client = AsyncAnthropic(api_key=api_key)
         self.model = model
@@ -325,6 +342,7 @@ class AnthropicLLM(LLMClient):
         user_id: str,
         tool_executor: ToolExecutor | None = None,
     ) -> AsyncIterator[str]:
+        """Stream Anthropic responses, including tool-use."""
         if tool_executor is None:
             async with self.client.messages.stream(
                 model=self.model,
@@ -412,12 +430,15 @@ class AnthropicLLM(LLMClient):
 
 
 class FallbackLLM(LLMClient):
+    """Fallback responder used when no configured provider is available."""
+
     async def stream_answer(
         self,
         prompt: str,
         user_id: str,
         tool_executor: ToolExecutor | None = None,
     ) -> AsyncIterator[str]:
+        """Stream a configuration hint in small chunks."""
         settings = get_settings()
         content = (
             "I do not have a configured LLM provider right now. "
@@ -429,6 +450,7 @@ class FallbackLLM(LLMClient):
 
 
 def get_llm_client() -> LLMClient:
+    """Return the active LLM client based on environment configuration."""
     settings = get_settings()
     provider = settings.llm_provider
 

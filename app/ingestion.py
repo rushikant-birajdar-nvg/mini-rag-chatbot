@@ -1,3 +1,5 @@
+"""Document ingestion pipeline for PDFs, chunking, embeddings, and upserts."""
+
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +22,7 @@ ACCESS_LEVEL_BY_FILE = {
 
 
 def ingest_documents(docs_root: Path) -> dict[str, Any]:
+    """Ingest all PDFs under docs_root and return ingestion summary metrics."""
     settings = get_settings()
     store = VectorStore()
     chunk_count = 0

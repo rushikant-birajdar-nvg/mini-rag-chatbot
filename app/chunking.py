@@ -1,7 +1,10 @@
+"""Text chunking utilities for document ingestion."""
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 def chunk_text(text: str, chunk_size: int, overlap: int) -> list[str]:
+    """Split text into overlapping chunks while preserving useful boundaries."""
     cleaned = " ".join(text.split())
     if not cleaned:
         return []

@@ -1,3 +1,5 @@
+"""JWT authentication helpers for websocket session setup."""
+
 import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
 from time import time
@@ -7,10 +9,13 @@ from app.models import AuthenticatedUser
 
 
 class AuthError(Exception):
+    """Raised when token validation fails or claims are incomplete."""
+
     pass
 
 
 def decode_token(token: str) -> AuthenticatedUser:
+    """Decode and validate JWT, returning normalized user claims."""
     settings = get_settings()
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
@@ -37,5 +42,6 @@ def decode_token(token: str) -> AuthenticatedUser:
 
 
 def is_user_token_expired(user: AuthenticatedUser) -> bool:
+    """Return True when the authenticated user's token is expired."""
     return int(time()) >= user.exp
 

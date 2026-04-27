@@ -1,3 +1,5 @@
+"""PDF text extraction with OCR fallback for scanned documents."""
+
 from pathlib import Path
 import logging
 from pypdf import PdfReader
@@ -6,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_ocr_unavailable_reason() -> str | None:
+    """Return a reason when OCR is unavailable, otherwise None."""
     try:
         import pytesseract
     except ImportError:
@@ -19,6 +22,7 @@ def get_ocr_unavailable_reason() -> str | None:
 
 
 def extract_pdf_pages(pdf_path: Path) -> list[tuple[int, str]]:
+    """Extract per-page text from a PDF, using OCR when direct text is missing."""
     reader = PdfReader(str(pdf_path))
     pages: list[tuple[int, str]] = []
     for idx, page in enumerate(reader.pages, start=1):

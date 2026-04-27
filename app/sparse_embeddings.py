@@ -1,3 +1,5 @@
+"""Lightweight sparse vector helpers used for hybrid retrieval."""
+
 import re
 from collections import Counter
 
@@ -6,10 +8,12 @@ TOKEN_PATTERN = re.compile(r"[a-z0-9]{2,}")
 
 
 def _tokenize(text: str) -> list[str]:
+    """Tokenize text into lowercase alphanumeric terms."""
     return TOKEN_PATTERN.findall(text.lower())
 
 
 def make_sparse_vector(text: str, max_terms: int = 64) -> dict[str, list[int] | list[float]]:
+    """Create a sparse representation as hashed term indices and normalized weights."""
     tokens = _tokenize(text)
     if not tokens:
         return {"indices": [], "values": []}
@@ -29,4 +33,5 @@ def make_sparse_vector(text: str, max_terms: int = 64) -> dict[str, list[int] | 
 
 
 def make_sparse_vectors(texts: list[str], max_terms: int = 64) -> list[dict[str, list[int] | list[float]]]:
+    """Build sparse vectors for a batch of texts."""
     return [make_sparse_vector(text, max_terms=max_terms) for text in texts]

@@ -7,7 +7,10 @@ python-dotenv
 # Auth
 pyjwt
 
-# Ingestion
+# RAG stack (vector DB + embeddings + ingestion)
+sentence-transformers
+langchain-text-splitters
+numpy
 pypdf
 pymupdf
 pytesseract

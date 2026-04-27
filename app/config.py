@@ -43,6 +43,9 @@ class Settings(BaseSettings):
         default="claude-haiku-4-5-20251001",
         alias="ANTHROPIC_MODEL",
     )
+    
+    chunk_size: int = 300
+    chunk_overlap: int = 50
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

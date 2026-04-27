@@ -1,4 +1,5 @@
 # Config
+pydantic-settings
 python-dotenv
 
 # Ingestion
@@ -6,3 +7,9 @@ pypdf
 pymupdf
 pytesseract
 pillow
+
+# LLM provider clients
+ollama
+openai
+anthropic
+httpx

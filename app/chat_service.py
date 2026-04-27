@@ -25,6 +25,7 @@ class ChatService:
         chunks = await asyncio.to_thread(
             self.vector_store.search,
             query_vector,
+            text,
             user.department,
             user.level,
             self.settings.retrieval_limit,

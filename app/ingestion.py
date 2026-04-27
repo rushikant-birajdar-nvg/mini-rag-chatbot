@@ -5,6 +5,7 @@ from app.chunking import chunk_text
 from app.config import get_settings
 from app.embeddings import embed_texts
 from app.pdf_loader import extract_pdf_pages, get_ocr_unavailable_reason
+from app.sparse_embeddings import make_sparse_vectors
 from app.vector_store import VectorStore
 
 ACCESS_LEVEL_BY_FILE = {
@@ -62,7 +63,8 @@ def ingest_documents(docs_root: Path) -> dict[str, Any]:
                 chunk_count += 1
 
     vectors = embed_texts(texts) if texts else []
-    store.upsert(texts=texts, vectors=vectors, metadatas=metadatas)
+    sparse_vectors = make_sparse_vectors(texts) if texts else []
+    store.upsert(texts=texts, vectors=vectors, metadatas=metadatas, sparse_vectors=sparse_vectors)
     return {
         "documents_ingested": doc_count,
         "chunks_upserted": chunk_count,

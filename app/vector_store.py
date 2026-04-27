@@ -4,6 +4,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
 from app.config import get_settings
+from app.models import RetrievedChunk
 
 
 class VectorStore:
@@ -30,4 +31,48 @@ class VectorStore:
             for text, vector, metadata in zip(texts, vectors, metadatas, strict=True)
         ]
         self.client.upsert(collection_name=self.collection, points=points)
+
+    def search(self, query_vector: list[float], department: str, level: int, limit: int) -> list[RetrievedChunk]:
+        # RBAC at query layer:
+        # (department == user.department OR department == hr) AND access_level <= user.level
+        rbac_filter = models.Filter(
+            must=[
+                models.FieldCondition(key="access_level", range=models.Range(lte=level)),
+                models.Filter(
+                    should=[
+                        models.FieldCondition(
+                            key="department", match=models.MatchValue(value=department)
+                        ),
+                        models.FieldCondition(key="department", match=models.MatchValue(value="hr")),
+                    ]
+                ),
+            ]
+        )
+        if hasattr(self.client, "search"):
+            results = self.client.search(
+                collection_name=self.collection,
+                query_vector=query_vector,
+                query_filter=rbac_filter,
+                limit=limit,
+            )
+        else:
+            response = self.client.query_points(
+                collection_name=self.collection,
+                query=query_vector,
+                query_filter=rbac_filter,
+                limit=limit,
+            )
+            results = response.points
+        chunks = [
+            RetrievedChunk(
+                text=str(item.payload.get("text", "")),
+                metadata=dict(item.payload),
+                score=float(item.score),
+            )
+            for item in results
+        ]
+
+        threshold = get_settings().retrieval_score_threshold
+        chunks = [c for c in chunks if c.score >= threshold]
+        return chunks
 

@@ -8,6 +8,7 @@ python-dotenv
 pyjwt
 
 # RAG stack (vector DB + embeddings + ingestion)
+qdrant-client
 sentence-transformers
 langchain-text-splitters
 numpy

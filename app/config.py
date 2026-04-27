@@ -43,9 +43,13 @@ class Settings(BaseSettings):
         default="claude-haiku-4-5-20251001",
         alias="ANTHROPIC_MODEL",
     )
-    
+
+    retrieval_limit: int = 4
     chunk_size: int = 300
     chunk_overlap: int = 50
+    stream_chunk_chars: int = 10
+    retrieval_score_threshold: float = 0.3
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

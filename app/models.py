@@ -22,3 +22,10 @@ class AuthenticatedUser:
     level: int
     exp: int
 
+
+@dataclass
+class RetrievedChunk:
+    text: str
+    metadata: dict[str, Any]
+    score: float
+

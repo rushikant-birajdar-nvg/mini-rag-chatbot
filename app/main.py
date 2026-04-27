@@ -8,16 +8,33 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from app.auth import AuthError, decode_token, is_user_token_expired
+from app.chat_service import ChatService
 from app.config import get_settings
+from app.ingestion import ingest_documents
 from app.models import AuthMessage, UserMessage
 
 app = FastAPI(title="Mini RAG Chatbot Backend")
+chat_service = ChatService()
 logger = logging.getLogger(__name__)
 settings = get_settings()
+STREAM_EMIT_DELAY_SECONDS = 0.015
 
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.post("/ingest")
+async def ingest() -> JSONResponse:
+    try:
+        result = await asyncio.to_thread(ingest_documents, Path("docs"))
+        return JSONResponse(result)
+    except Exception:
+        logger.exception("Document ingestion failed")
+        return JSONResponse(
+            {"message": "Ingestion failed due to an internal error."},
+            status_code=500,
+        )
 
 
 @app.websocket("/ws/chat")
@@ -64,7 +81,8 @@ async def ws_chat(websocket: WebSocket) -> None:
                 await websocket.close(code=1008)
                 break
 
-            await websocket.send_json({"type": "stream", "text": "Streaming successfully..."})
+            async for token in chat_service.stream_response(user, msg.text):
+                await websocket.send_json({"type": "stream", "text": token})
             await websocket.send_json({"type": "done"})
         except WebSocketDisconnect:
             break

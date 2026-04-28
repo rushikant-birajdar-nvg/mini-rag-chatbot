@@ -23,6 +23,7 @@ class VectorStore:
         settings = get_settings()
         collections = self.client.get_collections().collections
         if any(c.name == self.collection for c in collections):
+            self._validate_existing_collection_schema()
             return
         if settings.retrieval_mode == "hybrid" and hasattr(models, "SparseVectorParams"):
             self.client.create_collection(
@@ -37,6 +38,36 @@ class VectorStore:
             collection_name=self.collection,
             vectors_config=models.VectorParams(size=vector_size, distance=models.Distance.COSINE),
         )
+
+    def _validate_existing_collection_schema(self) -> None:
+        """Validate existing collection schema against current retrieval mode."""
+        settings = get_settings()
+        info = self.client.get_collection(self.collection)
+        params = getattr(getattr(info, "config", None), "params", None)
+        vectors_config = getattr(params, "vectors", None)
+        sparse_vectors_config = getattr(params, "sparse_vectors", None)
+
+        has_named_vectors = isinstance(vectors_config, dict)
+        has_dense_named = has_named_vectors and "dense" in vectors_config
+        has_sparse_named = isinstance(sparse_vectors_config, dict) and "sparse" in sparse_vectors_config
+
+        if settings.retrieval_mode == "hybrid":
+            if has_dense_named and has_sparse_named:
+                return
+            raise RuntimeError(
+                "Qdrant collection schema mismatch for RETRIEVAL_MODE=hybrid. "
+                f"Collection '{self.collection}' does not have named vectors 'dense' and 'sparse'. "
+                "Delete and recreate the collection, then run ingestion again. "
+                f"Example: curl -X DELETE \"{get_settings().qdrant_url}/collections/{self.collection}\""
+            )
+
+        if settings.retrieval_mode == "dense" and has_named_vectors:
+            raise RuntimeError(
+                "Qdrant collection schema mismatch for RETRIEVAL_MODE=dense. "
+                f"Collection '{self.collection}' appears to use named vectors. "
+                "Delete and recreate the collection, then run ingestion again. "
+                f"Example: curl -X DELETE \"{get_settings().qdrant_url}/collections/{self.collection}\""
+            )
 
     def upsert(
         self,
@@ -56,16 +87,18 @@ class VectorStore:
             sparse = sparse_vectors[i] if sparse_vectors and i < len(sparse_vectors) else None
             if (
                 settings.retrieval_mode == "hybrid"
-                and sparse
                 and hasattr(models, "SparseVector")
-                and isinstance(sparse.get("indices"), list)
-                and isinstance(sparse.get("values"), list)
-                and sparse["indices"]
             ):
-                point_vector = {
-                    "dense": vector,
-                    "sparse": models.SparseVector(indices=sparse["indices"], values=sparse["values"]),
-                }
+                point_vector = {"dense": vector}
+                if (
+                    sparse
+                    and isinstance(sparse.get("indices"), list)
+                    and isinstance(sparse.get("values"), list)
+                    and sparse["indices"]
+                ):
+                    point_vector["sparse"] = models.SparseVector(
+                        indices=sparse["indices"], values=sparse["values"]
+                    )
             else:
                 point_vector = vector
             points.append(

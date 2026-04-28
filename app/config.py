@@ -49,11 +49,13 @@ class Settings(BaseSettings):
     )
 
     retrieval_limit: int = 4
+    hybrid_retrieval_limit: int = 8
     retrieval_mode: Literal["dense", "hybrid"] = "dense"
     chunk_size: int = 180
     chunk_overlap: int = 25
     stream_chunk_chars: int = 10
     retrieval_score_threshold: float = 0.3
+    hybrid_retrieval_score_threshold: float = 0.05
 
 
 @lru_cache(maxsize=1)

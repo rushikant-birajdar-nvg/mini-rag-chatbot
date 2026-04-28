@@ -110,6 +110,12 @@ class VectorStore:
         self, query_vector: list[float], query_text: str, department: str, level: int, limit: int
     ) -> list[RetrievedChunk]:
         """Run RBAC-filtered retrieval and return thresholded chunk results."""
+        settings = get_settings()
+        effective_limit = (
+            settings.hybrid_retrieval_limit
+            if settings.retrieval_mode == "hybrid"
+            else limit
+        )
         # RBAC at query layer:
         # (department == user.department OR department == hr) AND access_level <= user.level
         rbac_filter = models.Filter(
@@ -125,7 +131,9 @@ class VectorStore:
                 ),
             ]
         )
-        results = self._hybrid_search_or_fallback(query_vector, query_text, rbac_filter, limit)
+        results = self._hybrid_search_or_fallback(
+            query_vector, query_text, rbac_filter, effective_limit
+        )
         chunks = [
             RetrievedChunk(
                 text=str(item.payload.get("text", "")),
@@ -135,7 +143,11 @@ class VectorStore:
             for item in results
         ]
 
-        threshold = get_settings().retrieval_score_threshold
+        threshold = (
+            settings.hybrid_retrieval_score_threshold
+            if settings.retrieval_mode == "hybrid"
+            else settings.retrieval_score_threshold
+        )
         chunks = [c for c in chunks if c.score >= threshold]
         return chunks
 

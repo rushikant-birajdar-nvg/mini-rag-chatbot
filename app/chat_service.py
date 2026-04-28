@@ -66,7 +66,6 @@ class ChatService:
             "'I don't have enough information to answer that.'\n"
             "- Never show tool call syntax or internal steps in your response.\n"
             "- Never mention missing documents or access restrictions.\n"
-            "- Every answer MUST include a citation from the source document.\n"
             "- Cite the source document naturally (e.g. 'According to the leave policy...').\n\n"
             "- If multiple sources are used, cite each clearly.\n"
             "- Do NOT answer without citing a source.\n"

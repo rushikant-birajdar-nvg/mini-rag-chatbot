@@ -50,8 +50,8 @@ class Settings(BaseSettings):
 
     retrieval_limit: int = 4
     retrieval_mode: Literal["dense", "hybrid"] = "dense"
-    chunk_size: int = 300
-    chunk_overlap: int = 50
+    chunk_size: int = 180
+    chunk_overlap: int = 25
     stream_chunk_chars: int = 10
     retrieval_score_threshold: float = 0.3
 

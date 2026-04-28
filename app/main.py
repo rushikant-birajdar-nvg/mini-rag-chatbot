@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -15,11 +16,27 @@ from app.config import get_settings
 from app.ingestion import ingest_documents
 from app.models import AuthMessage, UserMessage
 
-app = FastAPI(title="Mini RAG Chatbot Backend")
-chat_service = ChatService()
 logger = logging.getLogger(__name__)
 settings = get_settings()
 STREAM_EMIT_DELAY_SECONDS = 0.015
+
+chat_service = ChatService()
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Manage startup/shutdown lifecycle for shared application resources."""
+    logger.info("Application startup complete")
+    try:
+        yield
+    finally:
+        try:
+            await chat_service.close()
+        except Exception:
+            logger.exception("Shutdown cleanup failed")
+        logger.info("Application shutdown complete")
+
+
+app = FastAPI(title="Mini RAG Chatbot Backend", lifespan=lifespan)
 
 @app.get("/health")
 async def health() -> dict[str, str]:

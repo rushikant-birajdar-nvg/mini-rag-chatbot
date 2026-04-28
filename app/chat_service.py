@@ -27,6 +27,27 @@ class ChatService:
         self.settings = get_settings()
         self.vector_store = VectorStore()
         self.llm = get_llm_client()
+        
+    async def close(self) -> None:
+        """Best-effort shutdown cleanup for shared clients."""
+        vector_client = getattr(self.vector_store, "client", None)
+        if vector_client is not None:
+            close_fn = getattr(vector_client, "close", None)
+            if callable(close_fn):
+                close_fn()
+
+        llm_client = getattr(self, "llm", None)
+        if llm_client is None:
+            return
+        aclose_fn = getattr(llm_client, "aclose", None)
+        if callable(aclose_fn):
+            await aclose_fn()
+            return
+        close_fn = getattr(llm_client, "close", None)
+        if callable(close_fn):
+            maybe_coro = close_fn()
+            if asyncio.iscoroutine(maybe_coro):
+                await maybe_coro
 
     async def stream_response(self, user: AuthenticatedUser, text: str) -> AsyncIterator[str]:
         """Stream a policy-grounded answer for one user question."""

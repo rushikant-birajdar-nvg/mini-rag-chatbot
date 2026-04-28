@@ -22,3 +22,7 @@ ollama
 openai
 anthropic
 httpx
+
+# Testing
+pytest
+pytest-cov

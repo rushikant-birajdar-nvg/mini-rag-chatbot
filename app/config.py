@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     embedding_model: str = Field(default="BAAI/bge-small-en-v1.5", alias="EMBEDDING_MODEL")
 
     llm_provider: Literal["ollama", "openai", "groq", "gemini", "anthropic"] = Field(
-        default="ollama", alias="LLM_PROVIDER"
+        default="openai", alias="LLM_PROVIDER"
     )
     llm_temperature: float = Field(default=0.2, alias="LLM_TEMPERATURE")
 
